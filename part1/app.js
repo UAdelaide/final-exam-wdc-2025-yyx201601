@@ -15,23 +15,25 @@ let db;
 
 (async () => {
   try {
-
     const connection = await mysql.createConnection({
       host: 'localhost',
       user: 'root',
       password: 'cptbtptp233'
     });
 
+
     await connection.query('CREATE DATABASE IF NOT EXISTS DogWalkService');
     await connection.end();
 
+    //connect
     db = await mysql.createConnection({
       host: 'localhost',
       user: 'root',
-      password: '',
+      password: 'cptbtptp233',
       database: 'DogWalkService'
     });
 
+    // Create tables
     await db.execute(`
       CREATE TABLE IF NOT EXISTS Users (
         user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -79,6 +81,23 @@ let db;
       )
     `);
 
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS WalkRatings (
+        rating_id INT AUTO_INCREMENT PRIMARY KEY,
+        request_id INT NOT NULL,
+        walker_id INT NOT NULL,
+        owner_id INT NOT NULL,
+        rating INT CHECK (rating >= 1 AND rating <= 5),
+        comments TEXT,
+        rated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (request_id) REFERENCES WalkRequests(request_id),
+        FOREIGN KEY (walker_id) REFERENCES Users(user_id),
+        FOREIGN KEY (owner_id) REFERENCES Users(user_id),
+        UNIQUE KEY unique_rating (request_id)
+      )
+    `);
+
+    // Insert data if tables are empty
     const [userRows] = await db.execute('SELECT COUNT(*) AS count FROM Users');
     if (userRows[0].count === 0) {
       // Insert Users
@@ -132,6 +151,17 @@ let db;
           WHERE d.name = 'Max' AND wr.requested_time = '2025-06-10 08:00:00'), 
          (SELECT user_id FROM Users WHERE username = 'bobwalker'), 'pending')
       `);
+
+      // Insert Walk Ratings
+      await db.execute(`
+        INSERT INTO WalkRatings (request_id, walker_id, owner_id, rating, comments) VALUES
+        ((SELECT request_id FROM WalkRequests wr 
+          JOIN Dogs d ON wr.dog_id = d.dog_id 
+          WHERE d.name = 'Luna' AND wr.requested_time = '2025-06-12 07:30:00'), 
+         (SELECT user_id FROM Users WHERE username = 'mikewalks'),
+         (SELECT user_id FROM Users WHERE username = 'alice123'),
+         5, 'Excellent walker! Luna came back happy and well-exercised.')
+      `);
     }
 
     console.log('Database setup completed successfully');
@@ -157,6 +187,7 @@ app.get('/api/dogs', async (req, res) => {
   }
 });
 
+// API Route: Get all open walk requests
 app.get('/api/walkrequests/open', async (req, res) => {
   try {
     const [requests] = await db.execute(`
@@ -175,31 +206,40 @@ app.get('/api/walkrequests/open', async (req, res) => {
   }
 });
 
-
 app.get('/api/walkers/summary', async (req, res) => {
   try {
     const [walkers] = await db.execute(`
       SELECT 
         u.username AS walker_username,
-        COUNT(wr.rating_id) AS total_ratings,
-        CASE 
-          WHEN COUNT(wr.rating_id) > 0 THEN AVG(wr.rating)
-          ELSE NULL
-        END AS average_rating,
-        COUNT(DISTINCT wa.request_id) AS completed_walks
+        COALESCE(ratings.total_ratings, 0) AS total_ratings,
+        ratings.average_rating,
+        COALESCE(completed.completed_walks, 0) AS completed_walks
       FROM Users u
-      LEFT JOIN WalkApplications wa ON u.user_id = wa.walker_id AND wa.status = 'accepted'
-      LEFT JOIN WalkRequests req ON wa.request_id = req.request_id AND req.status = 'completed'
-      LEFT JOIN WalkRatings wr ON wa.request_id = wr.request_id AND wa.walker_id = wr.walker_id
+      LEFT JOIN (
+        SELECT 
+          wr.walker_id,
+          COUNT(*) AS total_ratings,
+          ROUND(AVG(wr.rating), 1) AS average_rating
+        FROM WalkRatings wr
+        GROUP BY wr.walker_id
+      ) ratings ON u.user_id = ratings.walker_id
+      LEFT JOIN (
+        SELECT 
+          wa.walker_id,
+          COUNT(*) AS completed_walks
+        FROM WalkApplications wa
+        JOIN WalkRequests req ON wa.request_id = req.request_id
+        WHERE wa.status = 'accepted' AND req.status = 'completed'
+        GROUP BY wa.walker_id
+      ) completed ON u.user_id = completed.walker_id
       WHERE u.role = 'walker'
-      GROUP BY u.user_id, u.username
       ORDER BY u.username
     `);
 
     const formattedWalkers = walkers.map(walker => ({
       walker_username: walker.walker_username,
       total_ratings: parseInt(walker.total_ratings),
-      average_rating: walker.average_rating ? parseFloat(walker.average_rating.toFixed(1)) : null,
+      average_rating: walker.average_rating || null,
       completed_walks: parseInt(walker.completed_walks)
     }));
 
