@@ -1,16 +1,19 @@
 {
-  "name": "exam",
+  "name": "dog-walk-service",
   "version": "1.0.0",
-  "main": "app.js",
+  "description": "Dog walking service application",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.14.1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "express": "^5.1.0",
-    "mysql2": "^3.14.1"
-  }
+  "license": "ISC"
 }
