@@ -19,17 +19,17 @@ let db;
     const connection = await mysql.createConnection({
       host: 'localhost',
       user: 'root',
-      password: 'cptbtptp'
+      password: 'cptbtptp233'
     });
 
-    await connection.query('CREATE DATABASE IF NOT EXISTS dogwalking');
+    await connection.query('CREATE DATABASE IF NOT EXISTS DogWalkService');
     await connection.end();
 
     db = await mysql.createConnection({
       host: 'localhost',
       user: 'root',
       password: '',
-      database: 'dogwalking'
+      database: 'DogWalkService'
     });
 
     await db.execute(`
