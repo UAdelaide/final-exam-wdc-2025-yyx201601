@@ -1,0 +1,9 @@
+#replace all 'examplepassword'
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=examplepassword
+DB_NAME=DogWalkService
+
+SESSION_SECRET=SESSION_SECRET_KEY
+
+PORT=8080
