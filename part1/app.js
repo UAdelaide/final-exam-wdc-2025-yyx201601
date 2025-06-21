@@ -170,7 +170,7 @@ let db;
   }
 })();
 
-//API Routes
+//Routes
 
 app.get('/api/dogs', async (req, res) => {
   try {
@@ -187,7 +187,6 @@ app.get('/api/dogs', async (req, res) => {
   }
 });
 
-// API Route: Get all open walk requests
 app.get('/api/walkrequests/open', async (req, res) => {
   try {
     const [requests] = await db.execute(`
