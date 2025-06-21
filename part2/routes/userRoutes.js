@@ -1,8 +1,17 @@
+require('dotenv').config();
 const express = require('express');
+const mysql = require('mysql2/promise');
 const router = express.Router();
-const db = require('../models/db');
 
-// GET all users (for admin/testing)
+
+// Database connection
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'cptbtptp233',
+  database: process.env.DB_NAME || 'DogWalkService'
+};
+
 router.get('/', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT user_id, username, email, role FROM Users');
@@ -53,6 +62,41 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Login failed' });
   }
+});
+
+router.get('/dogs', async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    const [rows] = await connection.execute(
+      'SELECT dog_id, name, size FROM Dogs WHERE owner_id = ?',
+      [req.session.user.id]
+    );
+
+    await connection.end();
+
+    res.json(rows);
+
+  } catch (error) {
+    console.error('Error fetching user dogs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/me', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  res.json({
+    user_id: req.session.user.id,
+    username: req.session.user.username,
+    role: req.session.user.role
+  });
 });
 
 module.exports = router;

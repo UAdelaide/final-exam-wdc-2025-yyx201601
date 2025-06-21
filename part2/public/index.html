@@ -15,32 +15,69 @@
     <div class="row justify-content-center">
       <div class="col-md-5">
         <h1 class="mb-4 text-primary">{{ message }}</h1>
-          <div class="card-body">
-            <!-- Login Form -->
-            <form @submit.prevent="login">
-              <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input v-model="loginForm.username" type="text" class="form-control" id="username" required>
-              </div>
-              <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input v-model="loginForm.password" type="password" class="form-control" id="password" required>
-              </div>
-              <div class="mb-3">
-                <button type="submit" class="btn btn-primary" :disabled="isLoading">
-                  {{ isLoading ? 'Logging in...' : 'Login' }}
-                </button>
-              </div>
-            </form>
+        <div class="card-body">
+          <form @submit.prevent="login">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input v-model="loginForm.username" type="text" class="form-control" id="username" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input v-model="loginForm.password" type="password" class="form-control" id="password" required>
+            </div>
+            <div class="mb-3">
+              <button type="submit" class="btn btn-primary" :disabled="isLoading">
+                {{ isLoading ? 'Logging in...' : 'Login' }}
+              </button>
+            </div>
+          </form>
 
-            <!-- Error message -->
-            <div v-if="error" class="alert alert-danger mt-3">
-              {{ error }}
+          <div v-if="error" class="alert alert-danger mt-3">
+            {{ error }}
+          </div>
+          <div class="card mt-4">
+              <h2 class="mb-0">All Registered Dogs</h2>
+            <div class="card-body">
+              <div v-if="loadingDogs" class="text-center">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading dogs...</span>
+                </div>
+              </div>
+              <div v-else-if="dogs.length > 0" class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Dog ID</th>
+                      <th>Name</th>
+                      <th>Size</th>
+                      <th>Owner ID</th>
+                      <th>Photo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="dog in dogs" :key="dog.dog_id">
+                      <td>{{ dog.dog_id }}</td>
+                      <td>{{ dog.name }}</td>
+                      <td>{{ dog.size }}</td>
+                      <td>{{ dog.owner_id }}</td>
+                      <td>
+                        <img v-if="dog.photo" :src="dog.photo" :alt="dog.name" class="img-thumbnail"
+                          style="width: 80px; height: 80px; object-fit: cover;">
+                        <div v-else class="spinner-border spinner-border-sm" role="status">
+                          <span class="visually-hidden">Loading photo...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p v-else class="text-muted">No dogs registered yet.</p>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
   <script>
     const { createApp } = Vue;
@@ -53,11 +90,12 @@
             password: ''
           },
           error: '',
-          isLoading: false
+          isLoading: false,
+          dogs: [],
+          loadingDogs: true
         };
       },
       async mounted() {
-        // Check if user is already logged in
         try {
           const response = await fetch('/api/auth/session');
           if (response.ok) {
@@ -65,10 +103,42 @@
             this.redirectToDashboard(data.user.role);
           }
         } catch (err) {
-          // User not logged in, stay on login page
         }
+
+        await this.loadDogs();
       },
       methods: {
+        async loadDogs() {
+          try {
+            this.loadingDogs = true;
+            const response = await fetch('/api/dogs');
+            if (response.ok) {
+              this.dogs = await response.json();
+
+              // Fetch dog photos
+              for (let dog of this.dogs) {
+                this.fetchDogPhoto(dog);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to load dogs:', err);
+          } finally {
+            this.loadingDogs = false;
+          }
+        },
+
+        async fetchDogPhoto(dog) {
+          try {
+            const response = await fetch('https://dog.ceo/api/breeds/image/random');
+            const data = await response.json();
+            if (data.status === 'success') {
+              dog.photo = data.message;
+            }
+          } catch (err) {
+            console.error('Failed to fetch dog photo:', err);
+          }
+        },
+
         async login() {
           this.error = '';
           this.isLoading = true;
@@ -85,7 +155,7 @@
             const data = await response.json();
 
             if (response.ok) {
-              // Redirect based on user role
+              // Redirect
               this.redirectToDashboard(data.user.role);
             } else {
               this.error = data.error || 'Login failed';

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../models/db');
 
-// GET all walk requests (for walkers to view)
+// get requests
 router.get('/', async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST a new walk request (from owner)
+// post request
 router.post('/', async (req, res) => {
   const { dog_id, requested_time, duration_minutes, location } = req.body;
 
@@ -35,10 +35,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-// POST an application to walk a dog (from walker)
+// post application
 router.post('/:id/apply', async (req, res) => {
   const requestId = req.params.id;
-  const { walker_id } = req.body;
+
+  if (!req.session.user || req.session.user.role !== 'walker') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const walker_id = req.session.user.id;
 
   try {
     await db.query(`

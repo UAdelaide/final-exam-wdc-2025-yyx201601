@@ -6,7 +6,6 @@ const requireAuth = (req, res, next) => {
     }
 };
 
-// Middleware -> check
 const requireRole = (role) => {
     return (req, res, next) => {
         if (req.session && req.session.user && req.session.user.role === role) {

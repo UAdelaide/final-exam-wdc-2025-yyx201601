@@ -6,7 +6,6 @@ const app = express();
 const PORT = 8080;
 require('dotenv').config();
 
-// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/public')));
 app.use(session({
@@ -16,13 +15,15 @@ app.use(session({
     cookie: { secure: false }
 }));
 
-// Routes
+//Routes
 const walkRoutes = require('./routes/walkRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
+const dogRoutes = require('./routes/dogRoutes');
 
 app.use('/api/walks', walkRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/dogs', dogRoutes);
 
 module.exports = app;

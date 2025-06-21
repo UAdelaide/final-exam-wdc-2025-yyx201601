@@ -39,7 +39,7 @@ CREATE TABLE WalkApplications (
     request_id INT NOT NULL,
     walker_id INT NOT NULL,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+    status ENUM('open', 'accepted', 'rejected') DEFAULT 'open',
     FOREIGN KEY (request_id) REFERENCES WalkRequests(request_id),
     FOREIGN KEY (walker_id) REFERENCES Users(user_id),
     CONSTRAINT unique_application UNIQUE (request_id, walker_id)
@@ -62,44 +62,14 @@ CREATE TABLE WalkRatings (
 ALTER TABLE WalkRatings AUTO_INCREMENT = 1;
 
 INSERT INTO Users (username, email, password_hash, role, created_at) VALUES
-('ownerJane', 'Jane@example.com', 'hashedpassword123', 'owner', '2025-06-06 01:32:58'),
+('ownerJane', 'jane@example.com', 'hashedpassword123', 'owner', '2025-06-06 01:32:58'),
 ('walkerMike', 'mike@example.com', 'hashedpassword456', 'walker', '2025-06-06 01:32:58'),
 ('ownerBob', 'bob@example.com', 'hashedpassword789', 'owner', '2025-06-06 01:34:32'),
-('carol123', 'carol@example.com', 'hashed101', 'owner', NOW()),
-('sarah_owner', 'sarah@example.com', 'hashed202', 'owner', NOW());
 
 INSERT INTO Dogs (owner_id, name, size) VALUES
-((SELECT user_id FROM Users WHERE username = 'ownerJane'), 'Max', 'medium'),
-((SELECT user_id FROM Users WHERE username = 'ownerBob'), 'Charlie', 'large'),
-((SELECT user_id FROM Users WHERE username = 'carol123'), 'Luna', 'small'),
-((SELECT user_id FROM Users WHERE username = 'sarah_owner'), 'Rocky', 'medium');
+((SELECT user_id FROM Users WHERE username = 'ownerJane'), 'Buddy', 'medium'),
+((SELECT user_id FROM Users WHERE username = 'ownerJane'), 'Lucy', 'small'),
+((SELECT user_id FROM Users WHERE username = 'ownerBob'), 'Rocky', 'large'),
+((SELECT user_id FROM Users WHERE username = 'ownerBob'), 'Daisy', 'medium'),
+((SELECT user_id FROM Users WHERE username = 'ownerBob'), 'Milo', 'small');
 
-INSERT INTO WalkRequests (dog_id, requested_time, duration_minutes, location, status, created_at) VALUES
-((SELECT dog_id FROM Dogs WHERE name = 'Max' AND owner_id = (SELECT user_id FROM Users WHERE username = 'ownerJane')), 
- '2025-06-10 08:00:00', 30, 'Parklands', 'open', NOW()),
-((SELECT dog_id FROM Dogs WHERE name = 'Charlie' AND owner_id = (SELECT user_id FROM Users WHERE username = 'ownerBob')), 
- '2025-06-11 15:00:00', 60, 'Central Park', 'open', NOW()),
-((SELECT dog_id FROM Dogs WHERE name = 'Luna' AND owner_id = (SELECT user_id FROM Users WHERE username = 'carol123')), 
- '2025-06-12 07:30:00', 30, 'Riverside Trail', 'completed', NOW()),
-((SELECT dog_id FROM Dogs WHERE name = 'Rocky' AND owner_id = (SELECT user_id FROM Users WHERE username = 'sarah_owner')), 
- '2025-06-13 16:00:00', 45, 'Downtown Square', 'open', NOW());
-
-INSERT INTO WalkApplications (request_id, walker_id, applied_at, status) VALUES
--- Luna's walk
-((SELECT request_id FROM WalkRequests wr 
-  JOIN Dogs d ON wr.dog_id = d.dog_id 
-  WHERE d.name = 'Luna' AND wr.requested_time = '2025-06-12 07:30:00'), 
- (SELECT user_id FROM Users WHERE username = 'walkerMike'), 
- NOW(), 'accepted'),
--- Max's walk
-((SELECT request_id FROM WalkRequests wr 
-  JOIN Dogs d ON wr.dog_id = d.dog_id 
-  WHERE d.name = 'Max' AND wr.requested_time = '2025-06-10 08:00:00'), 
- (SELECT user_id FROM Users WHERE username = 'walkerMike'), 
- NOW(), 'pending'),
--- Charlie's walk
-((SELECT request_id FROM WalkRequests wr 
-  JOIN Dogs d ON wr.dog_id = d.dog_id 
-  WHERE d.name = 'Charlie' AND wr.requested_time = '2025-06-11 15:00:00'), 
- (SELECT user_id FROM Users WHERE username = 'walkerMike'), 
- NOW(), 'pending');

@@ -1,16 +1,18 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const router = express.Router();
+
 
 // Database connection
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
+    password: process.env.DB_PASSWORD || 'cptbtptp233',
     database: process.env.DB_NAME || 'DogWalkService'
 };
 
-// Login endpoint
+//endpoints
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
@@ -21,7 +23,6 @@ router.post('/login', async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
 
-        // Simple password check - in production, use proper password hashing
         const [rows] = await connection.execute(
             'SELECT user_id, username, role FROM Users WHERE username = ? AND password_hash = ?',
             [username, password]
@@ -55,7 +56,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Logout endpoint
 router.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -65,7 +65,6 @@ router.post('/logout', (req, res) => {
     });
 });
 
-// Check session endpoint
 router.get('/session', (req, res) => {
     if (req.session.user) {
         res.json({ user: req.session.user });
